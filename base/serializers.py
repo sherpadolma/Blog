@@ -25,18 +25,21 @@ class PostSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = '__all__'
+        fields = ['id', 'post', 'content', 'author', 'created_at']
+        read_only_fields = ['author', 'created_at']
 
 class UserSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = User
         fields = ['username', 'password', 'email', 'first_name', 'last_name']
 
-    def create(self,validated_data):
-        raw_password =  validated_data.pop('password') # remove and assigned password key and value which user sent and validated
-        hash_password = make_password(raw_password) # hasing user's password using make_password function
-        validated_data['password'] = hash_password  # Assigning hashed password as a validated data
-        return super().create(validated_data)  # Passing the validated data to the parent class's create method to save the user instance
+    def create(self, validated_data):
+        password = validated_data.pop('password') #create a new user object with the remaining validated data
+        user = User(**validated_data)  # Use Django's built-in set_password method to hash the password instead of saving it as plain text
+        user.set_password(password)  # properly hash password for Django
+        user.save()
+        return user
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()

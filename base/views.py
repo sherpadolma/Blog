@@ -1,9 +1,9 @@
 from django.shortcuts import render
 from .models import Category, Tag, Post, Comment
-from rest_framework.viewsets import ModelViewSet, GenericViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
@@ -11,8 +11,8 @@ from .serializers import CategorySerializer, TagSerializer, PostSerializer, User
 
 # Create your views here.
 class CategoryApiView(ModelViewSet):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    queryset = Category.objects.all() #To convert category object to JESON
+    serializer_class = CategorySerializer #how the data will be converted form JSON
 
 
 class TagApiView(ModelViewSet):
@@ -24,7 +24,7 @@ class TagApiView(ModelViewSet):
 class PostApiView(ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [DjangoModelPermissions] #checks the user model permission
     filterset_fields = ['category', 'tags']
     search_fields = ['title', 'content']
 
@@ -144,3 +144,13 @@ class CommentApiView(ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
+
+    def create (self, request, *args, **kwargs): #( '*args' and '**kwargs'): allow passing extra arguments
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(author=request.user) #author auto-set
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
